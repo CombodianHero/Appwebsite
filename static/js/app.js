@@ -1,40 +1,31 @@
-let allBatches = [];
+async function fetchBatches() {
+  const org = document.getElementById("orgCode").value;
 
-async function load(){
- const org = document.getElementById("org").value;
- if(!org) return alert("Enter ORG Code");
+  const res = await fetch("/get-batches", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({org_code: org})
+  });
 
- const f = new FormData();
- f.append("org_code", org);
+  const data = await res.json();
+  if (!data.success) return alert(data.error);
 
- const r = await fetch("/get-batches",{method:"POST",body:f});
- allBatches = await r.json();
- render(allBatches);
-}
+  const ul = document.getElementById("batches");
+  ul.innerHTML = "";
 
-function render(list){
- const ul = document.getElementById("batches");
- ul.innerHTML="";
- list.forEach(b=>{
-   const li=document.createElement("li");
-   li.textContent=b.name;
-   li.onclick=()=>extract(b.id,b.name);
-   ul.appendChild(li);
- });
-}
-
-function filterBatches(){
- const q=document.getElementById("search").value.toLowerCase();
- render(allBatches.filter(b=>b.name.toLowerCase().includes(q)));
+  data.batches.forEach(b=>{
+    const li = document.createElement("li");
+    li.innerHTML = `${b.name} <button onclick="extract('${b.id}','${b.name}')">Extract</button>`;
+    ul.appendChild(li);
+  });
 }
 
 async function extract(id,name){
- const f=new FormData();
- f.append("org_code",document.getElementById("org").value);
- f.append("batch_id",id);
- f.append("batch_name",name);
-
- const r=await fetch("/extract",{method:"POST",body:f});
- const d=await r.json();
- window.open(d.html,"_blank");
+  const res = await fetch("/extract-batch",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({batch_id:id,batch_name:name})
+  });
+  const data = await res.json();
+  if(data.success) window.open(data.html_url,"_blank");
 }
