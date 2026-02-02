@@ -1,22 +1,22 @@
 import aiohttp
-import base64
 import json
+import base64
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0",
-    "Accept": "application/json",
     "Content-Type": "application/json",
+    "Accept": "application/json",
     "Origin": "https://web.classplusapp.com",
-    "Referer": "https://web.classplusapp.com/",
+    "Referer": "https://web.classplusapp.com/"
 }
 
-def encode_payload(payload: dict) -> str:
-    return base64.b64encode(json.dumps(payload).encode()).decode()
+def encode(data):
+    return base64.b64encode(json.dumps(data).encode()).decode()
 
 async def get_batches(org_code: str):
     url_base = "https://api.classplusapp.com/v2/course/preview/search/"
-    all_batches = []
     page = 1
+    batches = []
 
     async with aiohttp.ClientSession(headers=HEADERS) as session:
         while True:
@@ -26,27 +26,20 @@ async def get_batches(org_code: str):
                 "limit": 50
             }
 
-            encoded = encode_payload(payload)
-            url = url_base + encoded
+            url = url_base + encode(payload)
+            async with session.post(url) as r:
+                text = await r.text()
 
-            async with session.post(url) as resp:
-                text = await resp.text()
-
-                # ❌ If Classplus sends HTML or error page
-                if "application/json" not in resp.headers.get("Content-Type", ""):
-                    return {
-                        "error": "Classplus blocked or invalid ORG code",
-                        "status": resp.status,
-                        "response": text[:500]
-                    }
+                if "application/json" not in r.headers.get("Content-Type", ""):
+                    return {"success": False, "error": "Classplus blocked or invalid ORG"}
 
                 data = json.loads(text)
+                items = data.get("data", [])
 
-                batches = data.get("data", [])
-                if not batches:
+                if not items:
                     break
 
-                all_batches.extend(batches)
+                batches.extend(items)
                 page += 1
 
-    return all_batches
+    return {"success": True, "batches": batches}
