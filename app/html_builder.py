@@ -1,102 +1,77 @@
+import json
 import os
 
-BASE = "output/html"
+OUTPUT_HTML = "output/html"
 
-def build_html_from_json(batch, data):
-    os.makedirs(BASE, exist_ok=True)
-    links = []
+def build_html_from_json(json_path):
+    os.makedirs(OUTPUT_HTML, exist_ok=True)
 
-    for folder, items in data["folders"].items():
-        fname = folder.replace(" ", "_") + ".html"
-        path = f"{BASE}/{fname}"
+    with open(json_path, encoding="utf-8") as f:
+        data = json.load(f)
 
-        videos = "".join(
-            f"<li onclick=\"play('{v['url']}')\">🎬 {v['title']}</li>"
-            for v in items["videos"]
-        )
-        pdfs = "".join(
-            f"<li onclick=\"pdf('{p['url']}')\">📄 {p['title']}</li>"
-            for p in items["pdfs"]
-        )
-
-        html = f"""
+    html = f"""
 <!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
-<title>{folder}</title>
+<title>{data['batch_name']}</title>
 <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
 
-<h2>{folder}</h2>
+<h1>{data['batch_name']}</h1>
 
-<div class="layout">
-  <aside>
-    <button class="collapsible">🎬 Videos</button>
-    <div class="content">
-      <ul>{videos}</ul>
-    </div>
+<input type="text" id="search" placeholder="Search..." onkeyup="search()">
 
-    <button class="collapsible">📄 PDFs</button>
-    <div class="content">
-      <ul>{pdfs}</ul>
-    </div>
-  </aside>
+<div id="content">
+"""
 
-  <main>
-    <iframe id="v"></iframe>
-    <iframe id="p"></iframe>
-  </main>
+    for folder in data["folders"]:
+        html += f"""
+<button class="collapsible">{folder['name']}</button>
+<div class="folder">
+"""
+
+        for v in folder.get("videos", []):
+            html += f"""
+<div>
+<a href="https://cpplayer.onrender.com/?url={v['url']}" target="_blank">
+▶ {v['title']}
+</a>
+</div>
+"""
+
+        for p in folder.get("pdfs", []):
+            html += f"""
+<div>
+<a href="{p['url']}" target="_blank">📄 {p['title']}</a>
+</div>
+"""
+
+        html += "</div>"
+
+    html += """
 </div>
 
 <script>
-function play(u) {{
-  document.getElementById("v").src =
-    "https://cpplayer.onrender.com/?url=" + encodeURIComponent(u);
-  document.getElementById("p").src = "";
-}}
+document.querySelectorAll(".collapsible").forEach(btn=>{
+  btn.onclick = () => btn.nextElementSibling.classList.toggle("show");
+});
 
-function pdf(u) {{
-  document.getElementById("p").src = u;
-  document.getElementById("v").src = "";
-}}
-
-document.querySelectorAll(".collapsible").forEach(function(btn) {{
-  btn.addEventListener("click", function() {{
-    btn.nextElementSibling.classList.toggle("show");
-  }});
-}});
+function search(){
+  let q=document.getElementById("search").value.toLowerCase();
+  document.querySelectorAll("#content div").forEach(d=>{
+    d.style.display=d.innerText.toLowerCase().includes(q)?"":"none";
+  });
+}
 </script>
 
 </body>
 </html>
 """
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(html)
 
-        links.append(f"<li><a href='/output/html/{fname}'>{folder}</a></li>")
+    out = f"{OUTPUT_HTML}/{data['batch_id']}.html"
+    with open(out, "w", encoding="utf-8") as f:
+        f.write(html)
 
-    index_html = f"""
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>{batch}</title>
-<link rel="stylesheet" href="/static/css/style.css">
-</head>
-<body>
-
-<h1>{batch}</h1>
-<ul>
-  {''.join(links)}
-</ul>
-
-</body>
-</html>
-"""
-    index_path = f"{BASE}/{batch}.html"
-    with open(index_path, "w", encoding="utf-8") as f:
-        f.write(index_html)
-
-    return f"/output/html/{batch}.html"
+    return out
