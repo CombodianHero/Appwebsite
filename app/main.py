@@ -3,8 +3,8 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from classplus import get_batches, extract_batch_content
-from html_builder import build_html_from_json
+from app.classplus import get_batches, extract_batch_content
+from app.html_builder import build_html_from_json
 
 import os, json
 
