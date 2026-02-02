@@ -6,7 +6,7 @@ from fastapi.templating import Jinja2Templates
 from app.classplus import get_batches, extract_batch_content
 from app.html_builder import build_html_from_json
 
-import os, json
+import os, json, re
 
 app = FastAPI()
 
@@ -18,6 +18,9 @@ app.mount("/output", StaticFiles(directory="output"), name="output")
 
 templates = Jinja2Templates(directory="templates")
 
+def safe_name(name):
+    return re.sub(r'[^a-zA-Z0-9_]', '_', name)
+
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
@@ -27,20 +30,12 @@ async def batches(org_code: str = Form(...)):
     return await get_batches(org_code)
 
 @app.post("/extract")
-async def extract(
-    org_code: str = Form(...),
-    batch_id: str = Form(...),
-    batch_name: str = Form(...)
-):
+async def extract(org_code: str = Form(...), batch_id: str = Form(...), batch_name: str = Form(...)):
+    name = safe_name(batch_name)
     data = await extract_batch_content(org_code, batch_id)
 
-    json_path = f"output/json/{batch_name}.json"
-    with open(json_path, "w", encoding="utf-8") as f:
+    with open(f"output/json/{name}.json", "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
 
-    html_index = build_html_from_json(batch_name, data)
-
-    return {
-        "json": f"/{json_path}",
-        "html": html_index
-    }
+    html = build_html_from_json(name, data)
+    return {"html": html}
