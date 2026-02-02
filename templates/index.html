@@ -6,16 +6,12 @@
 </head>
 <body>
 
-<div class="app">
-<h1>📘 Classplus Extractor</h1>
+<h1>Classplus Extractor</h1>
 
-<input id="org" placeholder="Enter ORG Code">
-<button onclick="load()">Fetch Batches</button>
-
-<input id="search" placeholder="Search batch..." onkeyup="filterBatches()">
+<input id="orgCode" placeholder="Enter ORG Code">
+<button onclick="fetchBatches()">Fetch Batches</button>
 
 <ul id="batches"></ul>
-</div>
 
 <script src="/static/js/app.js"></script>
 </body>
