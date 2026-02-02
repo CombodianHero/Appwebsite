@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
 <title>Classplus Extractor</title>
 <link rel="stylesheet" href="/static/css/style.css">
 </head>
@@ -12,6 +11,8 @@
 
 <input id="org" placeholder="Enter ORG Code">
 <button onclick="load()">Fetch Batches</button>
+
+<input id="search" placeholder="Search batch..." onkeyup="filterBatches()">
 
 <ul id="batches"></ul>
 </div>
