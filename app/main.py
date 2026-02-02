@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -5,6 +6,11 @@ from fastapi.staticfiles import StaticFiles
 from app.classplus import get_batches
 from app.extractor import extract_batch
 from app.html_builder import build_html_from_json
+
+# ✅ CREATE REQUIRED DIRECTORIES FIRST
+os.makedirs("output/json", exist_ok=True)
+os.makedirs("output/html", exist_ok=True)
+os.makedirs("static", exist_ok=True)
 
 app = FastAPI()
 
