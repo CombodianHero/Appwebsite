@@ -1,41 +1,44 @@
-from fastapi import FastAPI, Form, Request
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 
-from app.classplus import get_batches, extract_batch_content
+from app.classplus import get_batches
+from app.extractor import extract_batch
 from app.html_builder import build_html_from_json
 
-import os, json, re
-
 app = FastAPI()
-
-os.makedirs("output/json", exist_ok=True)
-os.makedirs("output/html", exist_ok=True)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/output", StaticFiles(directory="output"), name="output")
 
-templates = Jinja2Templates(directory="templates")
-
-def safe_name(name):
-    return re.sub(r'[^a-zA-Z0-9_]', '_', name)
 
 @app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+async def home():
+    with open("templates/index.html", encoding="utf-8") as f:
+        return f.read()
+
 
 @app.post("/get-batches")
-async def batches(org_code: str = Form(...)):
+async def batches(request: Request):
+    data = await request.json()
+    org_code = data.get("org_code")
+
+    if not org_code:
+        return JSONResponse({"success": False, "error": "ORG code required"})
+
     return await get_batches(org_code)
 
-@app.post("/extract")
-async def extract(org_code: str = Form(...), batch_id: str = Form(...), batch_name: str = Form(...)):
-    name = safe_name(batch_name)
-    data = await extract_batch_content(org_code, batch_id)
 
-    with open(f"output/json/{name}.json", "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2)
+@app.post("/extract-batch")
+async def extract(request: Request):
+    data = await request.json()
+    batch_id = data.get("batch_id")
+    batch_name = data.get("batch_name")
 
-    html = build_html_from_json(name, data)
-    return {"html": html}
+    json_path = await extract_batch(batch_id, batch_name)
+    html_path = build_html_from_json(json_path)
+
+    return {
+        "success": True,
+        "html_url": f"/{html_path}"
+    }
